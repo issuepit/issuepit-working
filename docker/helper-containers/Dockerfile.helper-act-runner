@@ -50,7 +50,7 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
         > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io ffmpeg jq && \
+    apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io ffmpeg jq unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Go toolchain from the go-provider stage so workflow steps that clone and build
