@@ -271,15 +271,13 @@ jobs:
         # update+install if cached versions have drifted (e.g. after a security patch).
         run: |
           if [ "${{ steps.cache-ffmpeg.outputs.cache-hit }}" = "true" ]; then
-            cp /tmp/apt-ffmpeg/*.deb /var/cache/apt/archives/
+            cp /tmp/apt-ffmpeg/*.deb /var/cache/apt/archives/ || true
             apt-get install -y --no-download ffmpeg && exit 0 || true
-            # Cached packages are stale — fall through to full update+install below
+          fi
+          if command -v ffmpeg &> /dev/null; then
+            exit 0
           fi
           apt-get -y update
-          # Download packages first so we can cache only the ffmpeg-related debs
-          apt-get install -y --download-only ffmpeg
-          mkdir -p /tmp/apt-ffmpeg
-          cp /var/cache/apt/archives/*.deb /tmp/apt-ffmpeg/
           apt-get install -y ffmpeg
 
       - name: Disable ffmpeg auto-download (use system ffmpeg)
