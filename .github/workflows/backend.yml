@@ -1,5 +1,9 @@
 name: Backend CI
 
+# NOTE: This workflow must NOT use `sudo` - the act tool runs in containers
+# where sudo may not be available. Use alternative approaches like `install -m`
+# or direct file operations without elevated privileges.
+
 on:
   workflow_call:
 
