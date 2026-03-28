@@ -124,7 +124,12 @@ async function seedData(apiClient, tenantId) {
 
 async function screenshot(page, name) {
   const file = path.join(OUTPUT_DIR, `${name}.png`);
-  await page.waitForLoadState('networkidle');
+  // Use 'load' instead of 'networkidle' to avoid timeouts from persistent connections
+  // (websockets, polling, etc.). The 'load' event fires when the page is fully loaded
+  // but allows ongoing network activity like SignalR connections.
+  await page.waitForLoadState('load', { timeout: 60000 });
+  // Additional wait for Vue/Nuxt hydration and any initial API calls
+  await page.waitForTimeout(2000);
   await page.screenshot({ path: file, fullPage: false });
   console.log(`  ✓  ${file}`);
 }
@@ -159,7 +164,7 @@ async function main() {
   // --- Auth ---
   const loginPage = await context.newPage();
   await loginPage.goto(`${FRONTEND_URL}/login`);
-  await loginPage.waitForLoadState('networkidle');
+  await loginPage.waitForLoadState('load', { timeout: 60000 });
 
   if (USE_SEEDED_USER) {
     console.log(`Logging in as seeded user ${USERNAME}…`);
@@ -323,7 +328,7 @@ async function main() {
 
     // --- Project Settings — Custom Properties ---
     await page.goto(`${FRONTEND_URL}/projects/${proj.id}/settings`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load', { timeout: 60000 });
     await screenshot(page, 'project-settings');
 
     // Scroll to Custom Properties section and capture
@@ -374,7 +379,7 @@ async function main() {
 
       if (firstIssue) {
         await page.goto(`${FRONTEND_URL}/projects/${proj.id}/issues/${firstIssue.id}`);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('load', { timeout: 60000 });
 
         // @mention dropdown — type @Co to show Code Agent in autocomplete (agents shown before users)
         try {

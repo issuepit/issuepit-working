@@ -193,11 +193,40 @@ public sealed class AspireFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        // Dispose HTTP clients first to stop any pending requests
         ApiClient?.Dispose();
         McpClient?.Dispose();
         GitServerClient?.Dispose();
+
+        // Force garbage collection before disposing Aspire to reduce memory pressure
+        // during cleanup. This helps prevent test host crashes when Aspire resources
+        // are being torn down.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
         if (App is not null)
-            await App.DisposeAsync();
+        {
+            try
+            {
+                // Add a timeout to prevent disposal from hanging indefinitely
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+                await App.DisposeAsync().WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] Aspire App disposal timed out, forcing cleanup");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] Aspire App disposal error: {ex.Message}");
+            }
+        }
+
+        // Final GC pass after disposal to ensure resources are released
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
 
         // Clean up the temporary git repository created for E2E CI/CD runs.
         if (_e2eRepoPath is not null && Directory.Exists(_e2eRepoPath))
